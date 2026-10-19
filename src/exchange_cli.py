@@ -1,6 +1,6 @@
-from book_cli import read_id
-from exchange_models import ExchangeStatus
-from exchanges import ExchangeService, ExchangeView
+from src.console_input import ConsoleInput
+from src.exchange_models import ExchangeStatus
+from src.services.exchange import ExchangeService, ExchangeView
 
 
 class ExchangeConsole:
@@ -12,10 +12,47 @@ class ExchangeConsole:
 
     def send(self) -> None:
         """Запросить чужую и собственную книгу для нового предложения."""
-        requested = read_id("ID чужой книги, которую хотите получить: ")
-        offered = read_id("ID своей книги, которую предлагаете: ")
+        requested = ConsoleInput.read_id("ID чужой книги, которую хотите получить: ")
+        offered = ConsoleInput.read_id("ID своей книги, которую предлагаете: ")
         item = self._service.send(requested, offered)
         print(f"Заявка создана. ID: {item.id}. Статус: {item.status.value}.")
+
+    def list_requests(self) -> None:
+        """Показать отдельно входящие и исходящие заявки."""
+        for incoming, title in [(True, "Входящие"), (False, "Исходящие")]:
+            print(f"\n{title}:")
+            items = self._service.mine(incoming)
+            if not items:
+                print("Заявок нет.")
+            for view in items:
+                self._print(view)
+
+    def details(self) -> None:
+        """Открыть одну свою заявку по ID."""
+        self._print(self._service.view(ConsoleInput.read_id("ID заявки: ")))
+
+    def accept(self) -> None:
+        """Принять ожидающее предложение."""
+        self._service.accept(ConsoleInput.read_id("ID входящей заявки: "))
+        print("Заявка принята. Обе книги зарезервированы. Контакт доступен в заявке.")
+
+    def reject(self) -> None:
+        """Отклонить ожидающее предложение."""
+        self._service.reject(ConsoleInput.read_id("ID входящей заявки: "))
+        print("Заявка отклонена.")
+
+    def cancel(self) -> None:
+        """Отменить заявку по правилам доступа."""
+        self._service.cancel(ConsoleInput.read_id("ID заявки: "))
+        print("Заявка отменена. Резерв снят, если обмен был принят.")
+
+    def confirm(self) -> None:
+        """Подтвердить передачу книги от текущего участника."""
+        item = self._service.confirm(ConsoleInput.read_id("ID принятой заявки: "))
+        if item.status == ExchangeStatus.COMPLETED:
+            print("Обмен завершён. Обе книги получили статус «Обменена».")
+        else:
+            print("Ваше подтверждение сохранено. Ожидается второй участник.")
 
     def _print(self, view: ExchangeView) -> None:
         """Показать обе книги, участника, дату, статус и разрешённый контакт."""
@@ -30,40 +67,3 @@ class ExchangeConsole:
         print(f"Подтверждений передачи: {len(item.confirmations)}/2")
         if view.partner_contact is not None:
             print(f"Контакт для связи: {view.partner_contact}")
-
-    def list_requests(self) -> None:
-        """Показать отдельно входящие и исходящие заявки."""
-        for incoming, title in [(True, "Входящие"), (False, "Исходящие")]:
-            print(f"\n{title}:")
-            items = self._service.mine(incoming)
-            if not items:
-                print("Заявок нет.")
-            for view in items:
-                self._print(view)
-
-    def details(self) -> None:
-        """Открыть одну свою заявку по ID."""
-        self._print(self._service.view(read_id("ID заявки: ")))
-
-    def accept(self) -> None:
-        """Принять ожидающее предложение."""
-        self._service.accept(read_id("ID входящей заявки: "))
-        print("Заявка принята. Обе книги зарезервированы. Контакт доступен в заявке.")
-
-    def reject(self) -> None:
-        """Отклонить ожидающее предложение."""
-        self._service.reject(read_id("ID входящей заявки: "))
-        print("Заявка отклонена.")
-
-    def cancel(self) -> None:
-        """Отменить заявку по правилам доступа."""
-        self._service.cancel(read_id("ID заявки: "))
-        print("Заявка отменена. Резерв снят, если обмен был принят.")
-
-    def confirm(self) -> None:
-        """Подтвердить передачу книги от текущего участника."""
-        item = self._service.confirm(read_id("ID принятой заявки: "))
-        if item.status == ExchangeStatus.COMPLETED:
-            print("Обмен завершён. Обе книги получили статус «Обменена».")
-        else:
-            print("Ваше подтверждение сохранено. Ожидается второй участник.")
