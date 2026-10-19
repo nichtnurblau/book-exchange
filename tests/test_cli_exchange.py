@@ -1,13 +1,9 @@
 import io
-import sys
 import unittest
 from contextlib import redirect_stdout
-from pathlib import Path
 from unittest.mock import patch
 
-sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "src"))
-
-from main import main
+from src.main import main
 
 
 class CliExchangeTests(unittest.TestCase):
@@ -18,7 +14,7 @@ class CliExchangeTests(unittest.TestCase):
         output = io.StringIO()
         with (
             patch("builtins.input", side_effect=commands),
-            patch("cli.getpass", side_effect=passwords),
+            patch("src.cli.getpass", side_effect=passwords),
             redirect_stdout(output),
         ):
             main()

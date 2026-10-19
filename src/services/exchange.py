@@ -1,12 +1,12 @@
 from dataclasses import dataclass, replace
 from datetime import datetime, timezone
 
-from auth import AuthService
-from book_models import Book, BookStatus
-from book_repository import BookRepository
-from exchange_models import Exchange, ExchangeStatus
-from exchange_repository import ExchangeRepository
-from repositories import UserRepository
+from src.book_models import Book, BookStatus
+from src.exchange_models import Exchange, ExchangeStatus
+from src.repositories.book import BookRepository
+from src.repositories.exchange import ExchangeRepository
+from src.repositories.user import UserRepository
+from src.services.user import UserService
 
 
 @dataclass(frozen=True)
@@ -25,7 +25,7 @@ class ExchangeService:
 
     def __init__(
         self,
-        auth: AuthService,
+        auth: UserService,
         books: BookRepository,
         exchanges: ExchangeRepository,
         users: UserRepository,
@@ -35,21 +35,6 @@ class ExchangeService:
         self._books = books
         self._exchanges = exchanges
         self._users = users
-
-    def _available(self, book_id: int) -> Book:
-        """Проверить, что книга существует, не скрыта и доступна."""
-        book = self._books.get(book_id)
-        if book.deleted or book.status != BookStatus.AVAILABLE:
-            raise ValueError("Обе книги должны быть доступны для обмена.")
-        return book
-
-    def _participant(self, exchange_id: int) -> Exchange:
-        """Разрешить доступ к заявке только одному из её участников."""
-        user = self._auth.require_user()
-        item = self._exchanges.get(exchange_id)
-        if user.login not in (item.sender, item.recipient):
-            raise PermissionError("Эта заявка вам недоступна.")
-        return item
 
     def send(self, requested_id: int, offered_id: int) -> Exchange:
         """Создать предложение, проверив владельцев, доступность и дубликаты."""
@@ -107,15 +92,6 @@ class ExchangeService:
             partner.name,
             contact,
         )
-
-    def _waiting_recipient(self, exchange_id: int) -> Exchange:
-        """Проверить право получателя ответить на ожидающую заявку."""
-        item = self._participant(exchange_id)
-        if self._auth.require_user().login != item.recipient:
-            raise PermissionError("Ответить на заявку может только получатель.")
-        if item.status != ExchangeStatus.WAITING:
-            raise ValueError("Ответ возможен только на ожидающую заявку.")
-        return item
 
     def accept(self, exchange_id: int) -> Exchange:
         """Зарезервировать обе книги и отклонить остальные ожидающие предложения к ним."""
@@ -178,3 +154,27 @@ class ExchangeService:
                 self._books.save(replace(book, status=BookStatus.EXCHANGED))
         self._exchanges.save(updated)
         return updated
+
+    def _available(self, book_id: int) -> Book:
+        """Проверить, что книга существует, не скрыта и доступна."""
+        book = self._books.get(book_id)
+        if book.deleted or book.status != BookStatus.AVAILABLE:
+            raise ValueError("Обе книги должны быть доступны для обмена.")
+        return book
+
+    def _participant(self, exchange_id: int) -> Exchange:
+        """Разрешить доступ к заявке только одному из её участников."""
+        user = self._auth.require_user()
+        item = self._exchanges.get(exchange_id)
+        if user.login not in (item.sender, item.recipient):
+            raise PermissionError("Эта заявка вам недоступна.")
+        return item
+
+    def _waiting_recipient(self, exchange_id: int) -> Exchange:
+        """Проверить право получателя ответить на ожидающую заявку."""
+        item = self._participant(exchange_id)
+        if self._auth.require_user().login != item.recipient:
+            raise PermissionError("Ответить на заявку может только получатель.")
+        if item.status != ExchangeStatus.WAITING:
+            raise ValueError("Ответ возможен только на ожидающую заявку.")
+        return item

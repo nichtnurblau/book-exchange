@@ -1,11 +1,11 @@
 import re
 
-from models import User
-from repositories import UserRepository
-from security import PasswordHasher
+from src.models import User
+from src.repositories.user import UserRepository
+from src.security import PasswordHasher
 
 
-class AuthService:
+class UserService:
     """Реализовать регистрацию и управление одной консольной сессией."""
 
     def __init__(self, repository: UserRepository, hasher: PasswordHasher) -> None:

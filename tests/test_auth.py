@@ -1,13 +1,9 @@
-import sys
 import unittest
-from pathlib import Path
 
-sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "src"))
-
-from auth import AuthService
-from models import User
-from repositories import InMemoryUserRepository
-from security import PasswordHasher
+from src.models import User
+from src.repositories.user import InMemoryUserRepository
+from src.security import PasswordHasher
+from src.services.user import UserService
 
 
 class AuthTests(unittest.TestCase):
@@ -16,7 +12,7 @@ class AuthTests(unittest.TestCase):
     def setUp(self) -> None:
         """Создать отдельные сервис и хранилище для каждой проверки."""
         self.repository = InMemoryUserRepository()
-        self.auth = AuthService(self.repository, PasswordHasher())
+        self.auth = UserService(self.repository, PasswordHasher())
 
     def register(self, **changes: str) -> User:
         """Создать тестовую запись с возможной заменой полей."""
