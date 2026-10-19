@@ -1,48 +1,19 @@
 from collections.abc import Callable
 from getpass import getpass
 
-from auth import AuthService
-from book_cli import BookConsole
-from exchange_cli import ExchangeConsole
+from src.book_cli import BookConsole
+from src.exchange_cli import ExchangeConsole
+from src.services.user import UserService
 
 
 class ConsoleApp:
     """Показать консольный интерфейс лабораторной №3."""
 
-    def __init__(self, auth: AuthService, books: BookConsole, exchanges: ExchangeConsole) -> None:
+    def __init__(self, auth: UserService, books: BookConsole, exchanges: ExchangeConsole) -> None:
         """Получить сервис авторизации и консольные разделы."""
         self._auth = auth
         self._books = books
         self._exchanges = exchanges
-
-    def _actions(self) -> dict[str, tuple[str, Callable[[], None]]]:
-        """Сформировать доступное меню с учётом текущей сессии."""
-        actions = {
-            "5": ("Каталог", self._books.catalog),
-            "6": ("Поиск и фильтры", self._books.search),
-            "7": ("Карточка книги", self._books.card),
-        }
-        if self._auth.current_user is None:
-            actions.update({"1": ("Регистрация", self._register), "2": ("Вход", self._login)})
-        else:
-            actions.update(
-                {
-                    "3": ("Моя учётная запись", self._show_account),
-                    "4": ("Выйти из учётной записи", self._logout),
-                    "8": ("Мои книги", self._books.mine),
-                    "9": ("Добавить книгу", self._books.add),
-                    "10": ("Изменить книгу", self._books.edit),
-                    "11": ("Удалить книгу", self._books.delete),
-                    "12": ("Предложить обмен", self._exchanges.send),
-                    "13": ("Мои заявки", self._exchanges.list_requests),
-                    "14": ("Открыть заявку", self._exchanges.details),
-                    "15": ("Принять заявку", self._exchanges.accept),
-                    "16": ("Отклонить заявку", self._exchanges.reject),
-                    "17": ("Отменить заявку", self._exchanges.cancel),
-                    "18": ("Подтвердить передачу", self._exchanges.confirm),
-                }
-            )
-        return actions
 
     def run(self) -> None:
         """Обрабатывать команды до выхода, EOF или Ctrl+C."""
@@ -87,6 +58,35 @@ class ConsoleApp:
         finally:
             self._auth.logout()
         print("Программа закрыта. Данные удалены из памяти.")
+
+    def _actions(self) -> dict[str, tuple[str, Callable[[], None]]]:
+        """Сформировать доступное меню с учётом текущей сессии."""
+        actions = {
+            "5": ("Каталог", self._books.catalog),
+            "6": ("Поиск и фильтры", self._books.search),
+            "7": ("Карточка книги", self._books.card),
+        }
+        if self._auth.current_user is None:
+            actions.update({"1": ("Регистрация", self._register), "2": ("Вход", self._login)})
+        else:
+            actions.update(
+                {
+                    "3": ("Моя учётная запись", self._show_account),
+                    "4": ("Выйти из учётной записи", self._logout),
+                    "8": ("Мои книги", self._books.mine),
+                    "9": ("Добавить книгу", self._books.add),
+                    "10": ("Изменить книгу", self._books.edit),
+                    "11": ("Удалить книгу", self._books.delete),
+                    "12": ("Предложить обмен", self._exchanges.send),
+                    "13": ("Мои заявки", self._exchanges.list_requests),
+                    "14": ("Открыть заявку", self._exchanges.details),
+                    "15": ("Принять заявку", self._exchanges.accept),
+                    "16": ("Отклонить заявку", self._exchanges.reject),
+                    "17": ("Отменить заявку", self._exchanges.cancel),
+                    "18": ("Подтвердить передачу", self._exchanges.confirm),
+                }
+            )
+        return actions
 
     def _logout(self) -> None:
         """Завершить сессию, сохранив данные до закрытия программы."""

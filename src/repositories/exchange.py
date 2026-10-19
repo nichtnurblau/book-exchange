@@ -1,30 +1,34 @@
+from abc import ABC, abstractmethod
 from dataclasses import replace
-from typing import Protocol
 
-from exchange_models import Exchange
+from src.exchange_models import Exchange
 
 
-class ExchangeRepository(Protocol):
+class ExchangeRepository(ABC):
     """Договор хранения заявок и их истории."""
 
+    @abstractmethod
     def add(self, exchange: Exchange) -> Exchange:
         """Назначить ID и сохранить новую заявку."""
         ...
 
+    @abstractmethod
     def get(self, exchange_id: int) -> Exchange:
         """Найти заявку либо вызвать ValueError."""
         ...
 
+    @abstractmethod
     def all(self) -> list[Exchange]:
         """Вернуть все заявки для отбора в сервисе."""
         ...
 
+    @abstractmethod
     def save(self, exchange: Exchange) -> None:
         """Обновить существующую заявку."""
         ...
 
 
-class InMemoryExchangeRepository:
+class InMemoryExchangeRepository(ExchangeRepository):
     """Хранить заявки до завершения процесса."""
 
     def __init__(self) -> None:

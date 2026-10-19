@@ -1,21 +1,17 @@
-import sys
 import unittest
 from dataclasses import replace
-from pathlib import Path
 
-sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "src"))
-
-from auth import AuthService
-from book_models import GENRES, BookStatus
-from book_repository import InMemoryBookRepository
-from books import BookService
-from catalog import CatalogService
-from exchange_models import ExchangeStatus
-from exchange_repository import InMemoryExchangeRepository
-from exchanges import ExchangeService
-from models import User
-from repositories import InMemoryUserRepository
-from security import PasswordHasher
+from src.book_models import GENRES, BookStatus
+from src.exchange_models import ExchangeStatus
+from src.models import User
+from src.repositories.book import InMemoryBookRepository
+from src.repositories.exchange import InMemoryExchangeRepository
+from src.repositories.user import InMemoryUserRepository
+from src.security import PasswordHasher
+from src.services.book import BookService
+from src.services.catalog import CatalogService
+from src.services.exchange import ExchangeService
+from src.services.user import UserService
 
 
 class ExchangeFlowTests(unittest.TestCase):
@@ -36,7 +32,7 @@ class ExchangeFlowTests(unittest.TestCase):
                     login, name, "Волгоград", f"{login}@example.test", self.password_hash, self.salt
                 )
             )
-        self.auth = AuthService(self.users, self.hasher)
+        self.auth = UserService(self.users, self.hasher)
         self.books = InMemoryBookRepository()
         self.requests = InMemoryExchangeRepository()
         self.service = BookService(self.auth, self.books, self.requests)

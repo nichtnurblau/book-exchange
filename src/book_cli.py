@@ -1,29 +1,7 @@
-from book_models import CONDITIONS, GENRES, Book
-from books import BookService
-from catalog import CatalogService
-
-
-def read_id(prompt: str) -> int:
-    """Прочитать положительный числовой ID без вывода traceback."""
-    text = input(prompt).strip()
-    try:
-        value = int(text)
-    except ValueError:
-        raise ValueError("ID должен быть целым положительным числом.") from None
-    if value <= 0:
-        raise ValueError("ID должен быть целым положительным числом.")
-    return value
-
-
-def choose(label: str, options: tuple[str, ...]) -> str:
-    """Предложить выбор значения по номеру."""
-    print(label)
-    for number, option in enumerate(options, 1):
-        print(f"{number} — {option}")
-    index = read_id("Номер: ")
-    if index > len(options):
-        raise ValueError("Нет такого пункта в списке.")
-    return options[index - 1]
+from src.book_models import CONDITIONS, GENRES, Book
+from src.console_input import ConsoleInput
+from src.services.book import BookService
+from src.services.catalog import CatalogService
 
 
 class BookConsole:
@@ -34,12 +12,6 @@ class BookConsole:
         self._books = books
         self._catalog = catalog
 
-    def _print_book(self, book: Book) -> None:
-        """Вывести основные поля одной книги."""
-        print(f"ID {book.id}: {book.title} — {book.author}")
-        print(f"Жанр: {book.genre}; состояние: {book.condition}; статус: {book.status.value}")
-        print(f"Описание: {book.description or 'не указано'}")
-
     def catalog(self) -> None:
         """Показать все доступные объявления."""
         self._show_results("", "", "")
@@ -47,22 +19,13 @@ class BookConsole:
     def search(self) -> None:
         """Запросить поисковую строку и два совместных фильтра."""
         query = input("Часть названия или автора (Enter — все): ")
-        genre = choose("Жанр", ("Все жанры",) + GENRES)
+        genre = ConsoleInput.choose("Жанр", ("Все жанры",) + GENRES)
         city = input("Город (Enter — любой): ")
         self._show_results(query, "" if genre == "Все жанры" else genre, city)
 
-    def _show_results(self, query: str, genre: str, city: str) -> None:
-        """Отобразить результаты без контактов владельцев."""
-        cards = self._catalog.search(query, genre, city)
-        if not cards:
-            print("Книги не найдены.")
-        for card in cards:
-            self._print_book(card.book)
-            print(f"Владелец: {card.owner_name}; город: {card.city}\n")
-
     def card(self) -> None:
         """Открыть публичную карточку по ID."""
-        card = self._catalog.get_card(read_id("ID книги: "))
+        card = self._catalog.get_card(ConsoleInput.read_id("ID книги: "))
         self._print_book(card.book)
         print(f"Владелец: {card.owner_name}; город: {card.city}")
 
@@ -74,15 +37,6 @@ class BookConsole:
         for book in books:
             self._print_book(book)
 
-    def _fields(self) -> tuple[str, str, str, str, str]:
-        """Прочитать текстовые поля и значения из разрешённых списков."""
-        title = input("Название: ")
-        author = input("Автор: ")
-        genre = choose("Жанр", GENRES)
-        condition = choose("Состояние", CONDITIONS)
-        description = input("Описание (можно оставить пустым): ")
-        return title, author, genre, condition, description
-
     def add(self) -> None:
         """Создать объявление через сервис."""
         book = self._books.add(*self._fields())
@@ -90,7 +44,7 @@ class BookConsole:
 
     def edit(self) -> None:
         """После проверки прав заменить поля объявления."""
-        book_id = read_id("ID своей книги: ")
+        book_id = ConsoleInput.read_id("ID своей книги: ")
         self._print_book(self._books.editable(book_id))
         print("Введите новые значения всех полей.")
         self._books.edit(book_id, *self._fields())
@@ -98,10 +52,34 @@ class BookConsole:
 
     def delete(self) -> None:
         """Удалить объявление только после явного подтверждения."""
-        book_id = read_id("ID своей книги: ")
+        book_id = ConsoleInput.read_id("ID своей книги: ")
         book = self._books.editable(book_id)
         confirmed = input(f"Удалить «{book.title}»? Напишите да: ").strip().casefold() == "да"
         if self._books.delete(book_id, confirmed):
             print("Объявление удалено. Ожидающие заявки на эту книгу отменены.")
         else:
             print("Удаление отменено.")
+
+    def _print_book(self, book: Book) -> None:
+        """Вывести основные поля одной книги."""
+        print(f"ID {book.id}: {book.title} — {book.author}")
+        print(f"Жанр: {book.genre}; состояние: {book.condition}; статус: {book.status.value}")
+        print(f"Описание: {book.description or 'не указано'}")
+
+    def _show_results(self, query: str, genre: str, city: str) -> None:
+        """Отобразить результаты без контактов владельцев."""
+        cards = self._catalog.search(query, genre, city)
+        if not cards:
+            print("Книги не найдены.")
+        for card in cards:
+            self._print_book(card.book)
+            print(f"Владелец: {card.owner_name}; город: {card.city}\n")
+
+    def _fields(self) -> tuple[str, str, str, str, str]:
+        """Прочитать текстовые поля и значения из разрешённых списков."""
+        title = input("Название: ")
+        author = input("Автор: ")
+        genre = ConsoleInput.choose("Жанр", GENRES)
+        condition = ConsoleInput.choose("Состояние", CONDITIONS)
+        description = input("Описание (можно оставить пустым): ")
+        return title, author, genre, condition, description

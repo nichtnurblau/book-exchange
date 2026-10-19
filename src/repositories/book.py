@@ -1,30 +1,34 @@
+from abc import ABC, abstractmethod
 from dataclasses import replace
-from typing import Protocol
 
-from book_models import Book
+from src.book_models import Book
 
 
-class BookRepository(Protocol):
+class BookRepository(ABC):
     """Договор хранения объявлений, включая скрытые записи для истории."""
 
+    @abstractmethod
     def add(self, book: Book) -> Book:
         """Выдать уникальный ID и сохранить новую запись."""
         ...
 
+    @abstractmethod
     def get(self, book_id: int) -> Book:
         """Найти запись по ID; при отсутствии вызвать ValueError."""
         ...
 
+    @abstractmethod
     def all(self) -> list[Book]:
         """Вернуть записи, включая скрытые."""
         ...
 
+    @abstractmethod
     def save(self, book: Book) -> None:
         """Заменить существующую запись по её ID."""
         ...
 
 
-class InMemoryBookRepository:
+class InMemoryBookRepository(BookRepository):
     """Хранить объявления в словаре на время одного запуска."""
 
     def __init__(self) -> None:

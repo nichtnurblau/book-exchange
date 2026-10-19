@@ -1,29 +1,25 @@
 import io
-import sys
 import unittest
 from contextlib import redirect_stdout
-from pathlib import Path
 from unittest.mock import patch
 
-sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "src"))
-
-from auth import AuthService
-from book_cli import BookConsole
-from book_repository import InMemoryBookRepository
-from books import BookService
-from catalog import CatalogService
-from cli import ConsoleApp
-from exchange_cli import ExchangeConsole
-from exchange_repository import InMemoryExchangeRepository
-from exchanges import ExchangeService
-from repositories import InMemoryUserRepository
-from security import PasswordHasher
+from src.book_cli import BookConsole
+from src.cli import ConsoleApp
+from src.exchange_cli import ExchangeConsole
+from src.repositories.book import InMemoryBookRepository
+from src.repositories.exchange import InMemoryExchangeRepository
+from src.repositories.user import InMemoryUserRepository
+from src.security import PasswordHasher
+from src.services.book import BookService
+from src.services.catalog import CatalogService
+from src.services.exchange import ExchangeService
+from src.services.user import UserService
 
 
 class CliTests(unittest.TestCase):
     """Проверить консольный сценарий регистрации, входа и выхода."""
 
-    def make_app(self, auth: AuthService, users: InMemoryUserRepository) -> ConsoleApp:
+    def make_app(self, auth: UserService, users: InMemoryUserRepository) -> ConsoleApp:
         """Подключить консольные разделы к тестовой сессии."""
         books = InMemoryBookRepository()
         exchanges = InMemoryExchangeRepository()
@@ -36,7 +32,7 @@ class CliTests(unittest.TestCase):
     def test_full_scenario(self) -> None:
         """Ошибочный ввод и выход не должны обходить проверку авторизации."""
         users = InMemoryUserRepository()
-        auth = AuthService(users, PasswordHasher())
+        auth = UserService(users, PasswordHasher())
         commands = [
             "99",
             "3",
@@ -57,7 +53,7 @@ class CliTests(unittest.TestCase):
         output = io.StringIO()
         with (
             patch("builtins.input", side_effect=commands),
-            patch("cli.getpass", side_effect=["testpass123", "wrong", "testpass123"]),
+            patch("src.cli.getpass", side_effect=["testpass123", "wrong", "testpass123"]),
             redirect_stdout(output),
         ):
             self.make_app(auth, users).run()
@@ -73,7 +69,7 @@ class CliTests(unittest.TestCase):
     def test_eof(self) -> None:
         """Конец ввода корректно закрывает программу."""
         users = InMemoryUserRepository()
-        auth = AuthService(users, PasswordHasher())
+        auth = UserService(users, PasswordHasher())
         with patch("builtins.input", side_effect=EOFError), redirect_stdout(io.StringIO()):
             self.make_app(auth, users).run()
         self.assertIsNone(auth.current_user)

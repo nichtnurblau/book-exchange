@@ -1,15 +1,12 @@
-import sys
 import unittest
 from dataclasses import replace
-from pathlib import Path
 
-sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "src"))
-
-from book_models import GENRES, Book, BookStatus
-from book_repository import InMemoryBookRepository
-from catalog import CatalogService
-from models import User
-from repositories import InMemoryUserRepository
+from src.book_models import GENRES, Book, BookStatus
+from src.catalog import BookCard, Catalog
+from src.models import User
+from src.repositories.book import InMemoryBookRepository
+from src.repositories.user import InMemoryUserRepository
+from src.services.catalog import CatalogService
 
 
 class CatalogTests(unittest.TestCase):
@@ -61,6 +58,29 @@ class CatalogTests(unittest.TestCase):
         self.assertFalse(hasattr(card, "contact"))
         with self.assertRaises(ValueError):
             self.catalog.get_card(999)
+
+    def test_catalog_is_an_independent_snapshot(self) -> None:
+        """Каталог ищет карточки без доступа к сервису или хранилищу."""
+        available = BookCard(self.first, "Анна", "Волгоград")
+        reserved = BookCard(
+            replace(self.first, id=100, status=BookStatus.RESERVED), "Анна", "Волгоград"
+        )
+        catalog = Catalog((available, reserved))
+        self.assertEqual(catalog.search("КЛЫК", GENRES[0], "волгоград"), [available])
+        self.assertEqual(catalog.get_card(self.first.id), available)
+        with self.assertRaises(ValueError):
+            catalog.get_card(100)
+        with self.assertRaises(ValueError):
+            catalog.get_card(999)
+
+    def test_service_refreshes_catalog_after_changes(self) -> None:
+        """Сервис не оставляет в выдаче книгу из устаревшего снимка."""
+        snapshot = self.catalog.search()
+        self.books.save(replace(self.first, status=BookStatus.RESERVED))
+        self.assertEqual(len(snapshot), 3)
+        self.assertEqual(len(self.catalog.search()), 2)
+        with self.assertRaises(ValueError):
+            self.catalog.get_card(self.first.id)
 
 
 if __name__ == "__main__":

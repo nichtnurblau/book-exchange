@@ -1,21 +1,23 @@
-from typing import Protocol
+from abc import ABC, abstractmethod
 
-from models import User
+from src.models import User
 
 
-class UserRepository(Protocol):
+class UserRepository(ABC):
     """Минимальный договор между сервисом и хранилищем пользователей."""
 
+    @abstractmethod
     def find_by_login(self, login: str) -> User | None:
         """Вернуть пользователя без учёта регистра логина либо None."""
         ...
 
+    @abstractmethod
     def add(self, user: User) -> None:
         """Сохранить пользователя; при занятом логине вызвать ValueError."""
         ...
 
 
-class InMemoryUserRepository:
+class InMemoryUserRepository(UserRepository):
     """Хранить учётные записи только до завершения программы."""
 
     def __init__(self) -> None:

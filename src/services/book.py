@@ -1,36 +1,22 @@
 from dataclasses import replace
 
-from auth import AuthService
-from book_models import CONDITIONS, GENRES, Book, BookStatus
-from book_repository import BookRepository
-from exchange_models import ExchangeStatus
-from exchange_repository import ExchangeRepository
+from src.book_models import CONDITIONS, GENRES, Book, BookStatus
+from src.exchange_models import ExchangeStatus
+from src.repositories.book import BookRepository
+from src.repositories.exchange import ExchangeRepository
+from src.services.user import UserService
 
 
 class BookService:
     """Добавлять и изменять собственные объявления по требованиям Ф3–Ф4."""
 
     def __init__(
-        self, auth: AuthService, books: BookRepository, exchanges: ExchangeRepository
+        self, auth: UserService, books: BookRepository, exchanges: ExchangeRepository
     ) -> None:
         """Получить сессию и хранилища для контроля прав и связанных заявок."""
         self._auth = auth
         self._books = books
         self._exchanges = exchanges
-
-    def _validate(
-        self, title: str, author: str, genre: str, condition: str, description: str
-    ) -> None:
-        """Проверить все поля до изменения хранилища."""
-        for label, value in [("Название", title), ("Автор", author)]:
-            if not 1 <= len(value.strip()) <= 150:
-                raise ValueError(f"{label}: от 1 до 150 символов.")
-        if genre not in GENRES:
-            raise ValueError("Выберите жанр из списка.")
-        if condition not in CONDITIONS:
-            raise ValueError("Выберите состояние из списка.")
-        if len(description) > 1000:
-            raise ValueError("Описание: не более 1000 символов.")
 
     def add(
         self, title: str, author: str, genre: str, condition: str, description: str = ""
@@ -94,3 +80,17 @@ class BookService:
         for item in pending:
             self._exchanges.save(replace(item, status=ExchangeStatus.CANCELLED))
         return True
+
+    def _validate(
+        self, title: str, author: str, genre: str, condition: str, description: str
+    ) -> None:
+        """Проверить все поля до изменения хранилища."""
+        for label, value in [("Название", title), ("Автор", author)]:
+            if not 1 <= len(value.strip()) <= 150:
+                raise ValueError(f"{label}: от 1 до 150 символов.")
+        if genre not in GENRES:
+            raise ValueError("Выберите жанр из списка.")
+        if condition not in CONDITIONS:
+            raise ValueError("Выберите состояние из списка.")
+        if len(description) > 1000:
+            raise ValueError("Описание: не более 1000 символов.")
