@@ -1,12 +1,8 @@
-import sys
 import unittest
 from dataclasses import FrozenInstanceError, replace
-from pathlib import Path
 
-sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "src"))
-
-from book_models import GENRES, Book
-from book_repository import InMemoryBookRepository
+from src.book_models import GENRES, Book
+from src.repositories.book import InMemoryBookRepository
 
 
 class BookRepositoryTests(unittest.TestCase):
