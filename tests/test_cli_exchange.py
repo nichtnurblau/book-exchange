@@ -1,19 +1,30 @@
 import io
+import tempfile
 import unittest
 from contextlib import redirect_stdout
+from pathlib import Path
 from unittest.mock import patch
 
 from src.main import main
+from tests.db_support import migrate
 
 
 class CliExchangeTests(unittest.TestCase):
     """Пройти полный пользовательский сценарий через настоящую точку входа."""
+
+    def setUp(self) -> None:
+        """Использовать отдельную мигрированную БД для каждого сценария."""
+        folder = tempfile.TemporaryDirectory()
+        self.addCleanup(folder.cleanup)
+        self.url = "sqlite:///" + str(Path(folder.name) / "cli.db")
+        migrate(self.url)
 
     def run_commands(self, commands: list[str], passwords: list[str]) -> str:
         """Подать ответы вместо клавиатуры и собрать консольный вывод."""
         output = io.StringIO()
         with (
             patch("builtins.input", side_effect=commands),
+            patch("src.main.get_database_url", return_value=self.url),
             patch("src.cli.getpass", side_effect=passwords),
             redirect_stdout(output),
         ):
@@ -95,7 +106,7 @@ class CliExchangeTests(unittest.TestCase):
         self.assertNotIn("testpass123", output)
         self.assertNotIn("Traceback", output)
         restarted = self.run_commands(["2", "anna", "5", "0"], ["testpass123"])
-        self.assertIn("Неверный логин или пароль", restarted)
+        self.assertIn("Вход выполнен: Анна", restarted)
         self.assertIn("Книги не найдены", restarted)
 
     def test_edit_delete_bad_id_and_bad_choice(self) -> None:

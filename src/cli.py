@@ -1,4 +1,5 @@
 from collections.abc import Callable
+from contextlib import AbstractContextManager, nullcontext
 from getpass import getpass
 
 from src.book_cli import BookConsole
@@ -7,20 +8,31 @@ from src.services.user import UserService
 
 
 class ConsoleApp:
-    """Показать консольный интерфейс лабораторной №3."""
+    """Показать консольный интерфейс книгообмена."""
 
     def __init__(
-        self, user_service: UserService, book_cli: BookConsole, exchange_cli: ExchangeConsole
+        self,
+        user_service: UserService,
+        book_cli: BookConsole,
+        exchange_cli: ExchangeConsole,
+        transaction: Callable[[], AbstractContextManager[None]] = nullcontext,
+        persistent: bool = False,
     ) -> None:
         """Получить сервис авторизации и консольные разделы."""
         self._user_service = user_service
         self._book_cli = book_cli
         self._exchange_cli = exchange_cli
+        self._transaction = transaction
+        self._persistent = persistent
 
     def run(self) -> None:
         """Обрабатывать команды до выхода, EOF или Ctrl+C."""
         print("Книгообмен — обмен бумажными книгами.")
-        print("Данные существуют только до закрытия программы.")
+        print(
+            "Данные сохраняются в БД."
+            if self._persistent
+            else "Данные существуют только до закрытия программы."
+        )
         try:
             while True:
                 user = self._user_service.current_user
@@ -34,7 +46,8 @@ class ConsoleApp:
                     break
                 try:
                     if command in actions:
-                        actions[command][1]()
+                        with self._transaction():
+                            actions[command][1]()
                     elif user is None and command in {
                         "3",
                         "4",
@@ -59,7 +72,11 @@ class ConsoleApp:
             print("\nВвод завершён.")
         finally:
             self._user_service.logout()
-        print("Программа закрыта. Данные удалены из памяти.")
+        print(
+            "Программа закрыта. Данные сохранены в БД."
+            if self._persistent
+            else "Программа закрыта. Данные удалены из памяти."
+        )
 
     def _actions(self) -> dict[str, tuple[str, Callable[[], None]]]:
         """Сформировать доступное меню с учётом текущей сессии."""
@@ -91,7 +108,7 @@ class ConsoleApp:
         return actions
 
     def _logout(self) -> None:
-        """Завершить сессию, сохранив данные до закрытия программы."""
+        """Завершить текущую пользовательскую сессию."""
         self._user_service.logout()
         print("Вы вышли из учётной записи.")
 

@@ -1,0 +1,44 @@
+name: Tests
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+permissions:
+  contents: read
+
+jobs:
+  tests:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_DB: bookexchange
+          POSTGRES_USER: bookexchange
+          POSTGRES_PASSWORD: bookexchange
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U bookexchange -d bookexchange"
+          --health-interval 3s
+          --health-timeout 3s
+          --health-retries 20
+    env:
+      DATABASE_URL: postgresql+psycopg://bookexchange:bookexchange@localhost:5432/bookexchange
+      TEST_POSTGRES_URL: postgresql+psycopg://bookexchange:bookexchange@localhost:5432/bookexchange
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v7
+        with:
+          python-version: "3.12"
+      - run: uv sync --locked
+      - run: uv run ruff check .
+      - run: uv run ruff format --check .
+      - run: uv run alembic upgrade head
+      - run: uv run alembic check
+      - run: uv run python -m unittest discover -s tests -v
+      - name: Check console startup
+        run: printf '0\n' | uv run python -m src.main
