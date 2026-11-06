@@ -13,13 +13,18 @@ from src.services.user import UserService
 
 def main() -> None:
     """Собрать хранилища, сервисы и интерфейс и запустить программу."""
-    users = InMemoryUserRepository()
-    books = InMemoryBookRepository()
-    exchanges = InMemoryExchangeRepository()
-    auth = UserService(users, PasswordHasher())
-    book_console = BookConsole(BookService(auth, books, exchanges), CatalogService(books, users))
-    exchange_console = ExchangeConsole(ExchangeService(auth, books, exchanges, users))
-    ConsoleApp(auth, book_console, exchange_console).run()
+    user_repository = InMemoryUserRepository()
+    book_repository = InMemoryBookRepository()
+    exchange_repository = InMemoryExchangeRepository()
+    user_service = UserService(user_repository, PasswordHasher())
+    book_cli = BookConsole(
+        BookService(user_service, book_repository, exchange_repository),
+        CatalogService(book_repository, user_repository),
+    )
+    exchange_cli = ExchangeConsole(
+        ExchangeService(user_service, book_repository, exchange_repository, user_repository)
+    )
+    ConsoleApp(user_service, book_cli, exchange_cli).run()
 
 
 if __name__ == "__main__":

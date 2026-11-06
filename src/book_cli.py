@@ -7,10 +7,10 @@ from src.services.catalog import CatalogService
 class BookConsole:
     """Консольные операции с книгами без собственной бизнес-логики."""
 
-    def __init__(self, books: BookService, catalog: CatalogService) -> None:
+    def __init__(self, book_service: BookService, catalog_service: CatalogService) -> None:
         """Получить сервисы собственных книг и публичного каталога."""
-        self._books = books
-        self._catalog = catalog
+        self._book_service = book_service
+        self._catalog_service = catalog_service
 
     def catalog(self) -> None:
         """Показать все доступные объявления."""
@@ -25,13 +25,13 @@ class BookConsole:
 
     def card(self) -> None:
         """Открыть публичную карточку по ID."""
-        card = self._catalog.get_card(ConsoleInput.read_id("ID книги: "))
+        card = self._catalog_service.get_card(ConsoleInput.read_id("ID книги: "))
         self._print_book(card.book)
         print(f"Владелец: {card.owner_name}; город: {card.city}")
 
     def mine(self) -> None:
         """Показать собственные объявления и их статусы."""
-        books = self._books.mine()
+        books = self._book_service.mine()
         if not books:
             print("У вас пока нет книг.")
         for book in books:
@@ -39,23 +39,23 @@ class BookConsole:
 
     def add(self) -> None:
         """Создать объявление через сервис."""
-        book = self._books.add(*self._fields())
+        book = self._book_service.add(*self._fields())
         print(f"Книга добавлена. ID: {book.id}.")
 
     def edit(self) -> None:
         """После проверки прав заменить поля объявления."""
         book_id = ConsoleInput.read_id("ID своей книги: ")
-        self._print_book(self._books.editable(book_id))
+        self._print_book(self._book_service.editable(book_id))
         print("Введите новые значения всех полей.")
-        self._books.edit(book_id, *self._fields())
+        self._book_service.edit(book_id, *self._fields())
         print("Объявление изменено.")
 
     def delete(self) -> None:
         """Удалить объявление только после явного подтверждения."""
         book_id = ConsoleInput.read_id("ID своей книги: ")
-        book = self._books.editable(book_id)
+        book = self._book_service.editable(book_id)
         confirmed = input(f"Удалить «{book.title}»? Напишите да: ").strip().casefold() == "да"
-        if self._books.delete(book_id, confirmed):
+        if self._book_service.delete(book_id, confirmed):
             print("Объявление удалено. Ожидающие заявки на эту книгу отменены.")
         else:
             print("Удаление отменено.")
@@ -68,7 +68,7 @@ class BookConsole:
 
     def _show_results(self, query: str, genre: str, city: str) -> None:
         """Отобразить результаты без контактов владельцев."""
-        cards = self._catalog.search(query, genre, city)
+        cards = self._catalog_service.search(query, genre, city)
         if not cards:
             print("Книги не найдены.")
         for card in cards:

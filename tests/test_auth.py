@@ -11,8 +11,8 @@ class AuthTests(unittest.TestCase):
 
     def setUp(self) -> None:
         """Создать отдельные сервис и хранилище для каждой проверки."""
-        self.repository = InMemoryUserRepository()
-        self.auth = UserService(self.repository, PasswordHasher())
+        self.user_repository = InMemoryUserRepository()
+        self.user_service = UserService(self.user_repository, PasswordHasher())
 
     def register(self, **changes: str) -> User:
         """Создать тестовую запись с возможной заменой полей."""
@@ -24,21 +24,21 @@ class AuthTests(unittest.TestCase):
             contact="reader@example.test",
         )
         fields.update(changes)
-        return self.auth.register(**fields)
+        return self.user_service.register(**fields)
 
     def test_registration_does_not_log_in(self) -> None:
         """Регистрация сохраняет данные, но не создаёт сессию."""
         user = self.register()
         self.assertEqual(user.city, "Волгоград")
-        self.assertIs(self.repository.find_by_login("reader_1"), user)
-        self.assertIsNone(self.auth.current_user)
+        self.assertIs(self.user_repository.find_by_login("reader_1"), user)
+        self.assertIsNone(self.user_service.current_user)
 
     def test_duplicate_login_case_insensitive(self) -> None:
         """Различие регистра не позволяет занять тот же логин."""
         original = self.register()
         with self.assertRaises(ValueError):
             self.register(login="READER_1")
-        self.assertIs(self.repository.find_by_login("reader_1"), original)
+        self.assertIs(self.user_repository.find_by_login("reader_1"), original)
 
     def test_invalid_fields_are_not_saved(self) -> None:
         """Неверные поля не создают неполных записей."""
@@ -59,7 +59,7 @@ class AuthTests(unittest.TestCase):
             with self.subTest(field=field, value=value):
                 with self.assertRaises(ValueError):
                     self.register(**{field: value})
-                self.assertIsNone(self.repository.find_by_login("Reader_1"))
+                self.assertIsNone(self.user_repository.find_by_login("Reader_1"))
 
     def test_valid_boundaries(self) -> None:
         """Минимальные и максимальные длины принимаются."""
@@ -79,28 +79,28 @@ class AuthTests(unittest.TestCase):
     def test_login_and_logout(self) -> None:
         """Выход закрывает доступ, а запись остаётся до завершения программы."""
         user = self.register()
-        self.assertIs(self.auth.login("READER_1", "testpass123"), user)
-        self.assertIs(self.auth.require_user(), user)
-        self.auth.logout()
+        self.assertIs(self.user_service.login("READER_1", "testpass123"), user)
+        self.assertIs(self.user_service.require_user(), user)
+        self.user_service.logout()
         with self.assertRaises(PermissionError):
-            self.auth.require_user()
-        self.assertIs(self.auth.login("reader_1", "testpass123"), user)
+            self.user_service.require_user()
+        self.assertIs(self.user_service.login("reader_1", "testpass123"), user)
 
     def test_wrong_credentials_clear_session(self) -> None:
         """Неверные данные не оставляют активную сессию."""
         self.register()
         for login, password in [("Reader_1", "wrong"), ("unknown", "testpass123")]:
-            self.auth.login("Reader_1", "testpass123")
+            self.user_service.login("Reader_1", "testpass123")
             with self.assertRaises(ValueError):
-                self.auth.login(login, password)
-            self.assertIsNone(self.auth.current_user)
+                self.user_service.login(login, password)
+            self.assertIsNone(self.user_service.current_user)
 
     def test_password_spaces_are_significant(self) -> None:
         """Пароль не обрезается при регистрации и входе."""
         self.register(password=" testpass123 ")
         with self.assertRaises(ValueError):
-            self.auth.login("Reader_1", "testpass123")
-        self.auth.login("Reader_1", " testpass123 ")
+            self.user_service.login("Reader_1", "testpass123")
+        self.user_service.login("Reader_1", " testpass123 ")
 
     def test_new_storage_is_empty(self) -> None:
         """Новый экземпляр хранилища не наследует данные старого."""

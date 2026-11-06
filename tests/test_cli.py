@@ -19,20 +19,27 @@ from src.services.user import UserService
 class CliTests(unittest.TestCase):
     """Проверить консольный сценарий регистрации, входа и выхода."""
 
-    def make_app(self, auth: UserService, users: InMemoryUserRepository) -> ConsoleApp:
+    def make_app(
+        self, user_service: UserService, user_repository: InMemoryUserRepository
+    ) -> ConsoleApp:
         """Подключить консольные разделы к тестовой сессии."""
-        books = InMemoryBookRepository()
-        exchanges = InMemoryExchangeRepository()
+        book_repository = InMemoryBookRepository()
+        exchange_repository = InMemoryExchangeRepository()
         return ConsoleApp(
-            auth,
-            BookConsole(BookService(auth, books, exchanges), CatalogService(books, users)),
-            ExchangeConsole(ExchangeService(auth, books, exchanges, users)),
+            user_service,
+            BookConsole(
+                BookService(user_service, book_repository, exchange_repository),
+                CatalogService(book_repository, user_repository),
+            ),
+            ExchangeConsole(
+                ExchangeService(user_service, book_repository, exchange_repository, user_repository)
+            ),
         )
 
     def test_full_scenario(self) -> None:
         """Ошибочный ввод и выход не должны обходить проверку авторизации."""
-        users = InMemoryUserRepository()
-        auth = UserService(users, PasswordHasher())
+        user_repository = InMemoryUserRepository()
+        user_service = UserService(user_repository, PasswordHasher())
         commands = [
             "99",
             "3",
@@ -56,7 +63,7 @@ class CliTests(unittest.TestCase):
             patch("src.cli.getpass", side_effect=["testpass123", "wrong", "testpass123"]),
             redirect_stdout(output),
         ):
-            self.make_app(auth, users).run()
+            self.make_app(user_service, user_repository).run()
         text = output.getvalue()
         self.assertIn("Учётная запись Reader создана", text)
         self.assertIn("Неверный логин или пароль", text)
@@ -64,15 +71,15 @@ class CliTests(unittest.TestCase):
         self.assertEqual(text.count("Сначала войдите"), 2)
         self.assertNotIn("testpass123", text)
         self.assertNotIn("reader@example.test", text)
-        self.assertIsNone(auth.current_user)
+        self.assertIsNone(user_service.current_user)
 
     def test_eof(self) -> None:
         """Конец ввода корректно закрывает программу."""
-        users = InMemoryUserRepository()
-        auth = UserService(users, PasswordHasher())
+        user_repository = InMemoryUserRepository()
+        user_service = UserService(user_repository, PasswordHasher())
         with patch("builtins.input", side_effect=EOFError), redirect_stdout(io.StringIO()):
-            self.make_app(auth, users).run()
-        self.assertIsNone(auth.current_user)
+            self.make_app(user_service, user_repository).run()
+        self.assertIsNone(user_service.current_user)
 
 
 if __name__ == "__main__":

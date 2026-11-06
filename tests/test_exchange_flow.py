@@ -25,19 +25,23 @@ class ExchangeFlowTests(unittest.TestCase):
 
     def setUp(self) -> None:
         """Создать три независимых пользователя и по книге у каждого."""
-        self.users = InMemoryUserRepository()
+        self.user_repository = InMemoryUserRepository()
         for login, name in [("anna", "Анна"), ("boris", "Борис"), ("vera", "Вера")]:
-            self.users.add(
+            self.user_repository.add(
                 User(
                     login, name, "Волгоград", f"{login}@example.test", self.password_hash, self.salt
                 )
             )
-        self.auth = UserService(self.users, self.hasher)
-        self.books = InMemoryBookRepository()
-        self.requests = InMemoryExchangeRepository()
-        self.service = BookService(self.auth, self.books, self.requests)
-        self.exchange = ExchangeService(self.auth, self.books, self.requests, self.users)
-        self.catalog = CatalogService(self.books, self.users)
+        self.user_service = UserService(self.user_repository, self.hasher)
+        self.book_repository = InMemoryBookRepository()
+        self.exchange_repository = InMemoryExchangeRepository()
+        self.service = BookService(
+            self.user_service, self.book_repository, self.exchange_repository
+        )
+        self.exchange = ExchangeService(
+            self.user_service, self.book_repository, self.exchange_repository, self.user_repository
+        )
+        self.catalog = CatalogService(self.book_repository, self.user_repository)
         ids = []
         for login in ("anna", "boris", "vera"):
             self.login(login)
@@ -47,7 +51,7 @@ class ExchangeFlowTests(unittest.TestCase):
 
     def login(self, login: str) -> None:
         """Переключить текущую сессию штатным входом."""
-        self.auth.login(login, "testpass123")
+        self.user_service.login(login, "testpass123")
 
     def accepted(self) -> int:
         """Создать заявку Анны Борису и принять её от имени Бориса."""
@@ -73,9 +77,9 @@ class ExchangeFlowTests(unittest.TestCase):
         ]:
             with self.assertRaises(ValueError):
                 self.service.edit(item.id, title, author, genre, condition, description)
-            self.assertEqual(self.books.get(item.id), item)
+            self.assertEqual(self.book_repository.get(item.id), item)
         self.service.edit(item.id, "Новое название", "Автор", GENRES[2], "Хорошее", "Описание")
-        self.assertEqual(self.books.get(item.id).title, "Новое название")
+        self.assertEqual(self.book_repository.get(item.id).title, "Новое название")
         with self.assertRaises(PermissionError):
             self.service.edit(self.b, "Подмена", "Автор", GENRES[0], "Новое", "")
         with self.assertRaises(PermissionError):
@@ -87,7 +91,7 @@ class ExchangeFlowTests(unittest.TestCase):
     def test_guests_cannot_change_data(self) -> None:
         """Выход запрещает все операции зарегистрированного пользователя."""
         item = self.exchange.send(self.b, self.a)
-        self.auth.logout()
+        self.user_service.logout()
         actions = [
             lambda: self.service.add("К", "А", GENRES[0], "Новое"),
             lambda: self.service.editable(self.a),
@@ -143,22 +147,22 @@ class ExchangeFlowTests(unittest.TestCase):
         second = self.exchange.send(self.b, self.c)
         self.login("boris")
         self.exchange.accept(main.id)
-        self.assertEqual(self.books.get(self.a).status, BookStatus.RESERVED)
-        self.assertEqual(self.books.get(self.b).status, BookStatus.RESERVED)
-        self.assertEqual(self.books.get(self.c).status, BookStatus.AVAILABLE)
+        self.assertEqual(self.book_repository.get(self.a).status, BookStatus.RESERVED)
+        self.assertEqual(self.book_repository.get(self.b).status, BookStatus.RESERVED)
+        self.assertEqual(self.book_repository.get(self.c).status, BookStatus.AVAILABLE)
         for item in (first, second):
-            self.assertEqual(self.requests.get(item.id).status, ExchangeStatus.REJECTED)
+            self.assertEqual(self.exchange_repository.get(item.id).status, ExchangeStatus.REJECTED)
         self.assertEqual([card.book.id for card in self.catalog.search()], [self.c])
 
     def test_accept_rechecks_before_any_change(self) -> None:
         """Непригодность второй книги не резервирует первую."""
         item = self.exchange.send(self.b, self.a)
-        self.books.save(replace(self.books.get(self.a), deleted=True))
+        self.book_repository.save(replace(self.book_repository.get(self.a), deleted=True))
         self.login("boris")
         with self.assertRaises(ValueError):
             self.exchange.accept(item.id)
-        self.assertEqual(self.books.get(self.b).status, BookStatus.AVAILABLE)
-        self.assertEqual(self.requests.get(item.id).status, ExchangeStatus.WAITING)
+        self.assertEqual(self.book_repository.get(self.b).status, BookStatus.AVAILABLE)
+        self.assertEqual(self.exchange_repository.get(item.id).status, ExchangeStatus.WAITING)
 
     def test_only_recipient_can_respond(self) -> None:
         """Отправитель не принимает и не отклоняет своё предложение."""
@@ -170,14 +174,14 @@ class ExchangeFlowTests(unittest.TestCase):
         with self.assertRaises(PermissionError):
             self.exchange.cancel(item.id)
         self.exchange.reject(item.id)
-        self.assertEqual(self.books.get(self.a).status, BookStatus.AVAILABLE)
-        self.assertEqual(self.books.get(self.b).status, BookStatus.AVAILABLE)
+        self.assertEqual(self.book_repository.get(self.a).status, BookStatus.AVAILABLE)
+        self.assertEqual(self.book_repository.get(self.b).status, BookStatus.AVAILABLE)
 
     def test_delete_requires_confirmation_and_keeps_history(self) -> None:
         """Удаление отменяет ожидающие заявки и сохраняет обе книги в истории."""
         item = self.exchange.send(self.b, self.a)
         self.assertFalse(self.service.delete(self.a))
-        self.assertFalse(self.books.get(self.a).deleted)
+        self.assertFalse(self.book_repository.get(self.a).deleted)
         self.assertTrue(self.service.delete(self.a, True))
         self.assertEqual(self.service.mine(), [])
         view = self.exchange.view(item.id)
@@ -196,7 +200,7 @@ class ExchangeFlowTests(unittest.TestCase):
         self.exchange.cancel(item.id)
         new = self.exchange.send(self.b, self.a)
         self.assertNotEqual(item.id, new.id)
-        self.assertEqual(self.books.get(self.b).status, BookStatus.AVAILABLE)
+        self.assertEqual(self.book_repository.get(self.b).status, BookStatus.AVAILABLE)
 
     def test_cancel_accepted_clears_confirmation_and_contacts(self) -> None:
         """Принятый обмен отменяется любым участником, сбрасывая подтверждения."""
@@ -208,12 +212,12 @@ class ExchangeFlowTests(unittest.TestCase):
         self.assertEqual(cancelled.confirmations, frozenset())
         self.assertIsNone(self.exchange.view(item_id).partner_contact)
         for book_id in (self.a, self.b):
-            self.assertEqual(self.books.get(book_id).status, BookStatus.AVAILABLE)
+            self.assertEqual(self.book_repository.get(book_id).status, BookStatus.AVAILABLE)
         new = self.exchange.send(self.b, self.a)
         self.login("boris")
         self.exchange.accept(new.id)
         self.exchange.cancel(new.id)
-        self.assertEqual(self.books.get(self.a).status, BookStatus.AVAILABLE)
+        self.assertEqual(self.book_repository.get(self.a).status, BookStatus.AVAILABLE)
 
     def test_conflicts_stay_rejected_after_cancel(self) -> None:
         """Отмена принятого обмена не восстанавливает конкурирующие заявки."""
@@ -223,7 +227,7 @@ class ExchangeFlowTests(unittest.TestCase):
         self.login("boris")
         self.exchange.accept(first.id)
         self.exchange.cancel(first.id)
-        self.assertEqual(self.requests.get(other.id).status, ExchangeStatus.REJECTED)
+        self.assertEqual(self.exchange_repository.get(other.id).status, ExchangeStatus.REJECTED)
 
     def test_contact_visibility_and_two_confirmations(self) -> None:
         """Контакты закрыты до принятия, завершение требует двух разных участников."""
@@ -237,13 +241,13 @@ class ExchangeFlowTests(unittest.TestCase):
         self.exchange.confirm(item.id)
         with self.assertRaises(ValueError):
             self.exchange.confirm(item.id)
-        self.assertEqual(self.books.get(self.a).status, BookStatus.RESERVED)
+        self.assertEqual(self.book_repository.get(self.a).status, BookStatus.RESERVED)
         self.login("anna")
         completed = self.exchange.confirm(item.id)
         self.assertEqual(completed.status, ExchangeStatus.COMPLETED)
         self.assertEqual(self.exchange.view(item.id).partner_contact, "boris@example.test")
         for book_id in (self.a, self.b):
-            self.assertEqual(self.books.get(book_id).status, BookStatus.EXCHANGED)
+            self.assertEqual(self.book_repository.get(book_id).status, BookStatus.EXCHANGED)
         self.assertEqual(len(self.catalog.search()), 1)
         self.login("boris")
         for action in (

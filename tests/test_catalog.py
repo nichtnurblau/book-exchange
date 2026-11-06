@@ -14,16 +14,16 @@ class CatalogTests(unittest.TestCase):
 
     def setUp(self) -> None:
         """Подготовить книги разных городов и жанров без сессии пользователя."""
-        users = InMemoryUserRepository()
-        users.add(User("anna", "Анна", "Волгоград", "private-contact", b"", b""))
-        users.add(User("boris", "Борис", "Москва", "another-private", b"", b""))
-        self.books = InMemoryBookRepository()
-        self.first = self.books.add(
+        user_repository = InMemoryUserRepository()
+        user_repository.add(User("anna", "Анна", "Волгоград", "private-contact", b"", b""))
+        user_repository.add(User("boris", "Борис", "Москва", "another-private", b"", b""))
+        self.book_repository = InMemoryBookRepository()
+        self.first = self.book_repository.add(
             Book(0, "anna", "Белый клык", "Джек Лондон", GENRES[0], "Хорошее")
         )
-        self.books.add(Book(0, "boris", "Белый клык", "Джек Лондон", GENRES[0], "Новое"))
-        self.books.add(Book(0, "anna", "Алгебра", "Иван Петров", GENRES[1], "Новое"))
-        self.catalog = CatalogService(self.books, users)
+        self.book_repository.add(Book(0, "boris", "Белый клык", "Джек Лондон", GENRES[0], "Новое"))
+        self.book_repository.add(Book(0, "anna", "Алгебра", "Иван Петров", GENRES[1], "Новое"))
+        self.catalog = CatalogService(self.book_repository, user_repository)
 
     def test_russian_partial_search(self) -> None:
         """Части названия и автора ищутся без учёта регистра."""
@@ -45,7 +45,7 @@ class CatalogTests(unittest.TestCase):
             dict(deleted=True),
         ]:
             with self.subTest(change=change):
-                self.books.save(replace(self.first, **change))
+                self.book_repository.save(replace(self.first, **change))
                 self.assertEqual(len(self.catalog.search()), 2)
                 with self.assertRaises(ValueError):
                     self.catalog.get_card(self.first.id)
@@ -76,7 +76,7 @@ class CatalogTests(unittest.TestCase):
     def test_service_refreshes_catalog_after_changes(self) -> None:
         """Сервис не оставляет в выдаче книгу из устаревшего снимка."""
         snapshot = self.catalog.search()
-        self.books.save(replace(self.first, status=BookStatus.RESERVED))
+        self.book_repository.save(replace(self.first, status=BookStatus.RESERVED))
         self.assertEqual(len(snapshot), 3)
         self.assertEqual(len(self.catalog.search()), 2)
         with self.assertRaises(ValueError):
