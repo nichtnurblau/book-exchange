@@ -9,11 +9,13 @@ from src.services.user import UserService
 class ConsoleApp:
     """Показать консольный интерфейс лабораторной №3."""
 
-    def __init__(self, auth: UserService, books: BookConsole, exchanges: ExchangeConsole) -> None:
+    def __init__(
+        self, user_service: UserService, book_cli: BookConsole, exchange_cli: ExchangeConsole
+    ) -> None:
         """Получить сервис авторизации и консольные разделы."""
-        self._auth = auth
-        self._books = books
-        self._exchanges = exchanges
+        self._user_service = user_service
+        self._book_cli = book_cli
+        self._exchange_cli = exchange_cli
 
     def run(self) -> None:
         """Обрабатывать команды до выхода, EOF или Ctrl+C."""
@@ -21,7 +23,7 @@ class ConsoleApp:
         print("Данные существуют только до закрытия программы.")
         try:
             while True:
-                user = self._auth.current_user
+                user = self._user_service.current_user
                 print(f"\nТекущий пользователь: {user.name if user else 'Гость'}")
                 actions = self._actions()
                 for key in sorted(actions, key=int):
@@ -48,7 +50,7 @@ class ConsoleApp:
                         "17",
                         "18",
                     }:
-                        self._auth.require_user()
+                        self._user_service.require_user()
                     else:
                         print("Выберите доступный пункт меню.")
                 except (ValueError, PermissionError) as error:
@@ -56,41 +58,41 @@ class ConsoleApp:
         except (EOFError, KeyboardInterrupt):
             print("\nВвод завершён.")
         finally:
-            self._auth.logout()
+            self._user_service.logout()
         print("Программа закрыта. Данные удалены из памяти.")
 
     def _actions(self) -> dict[str, tuple[str, Callable[[], None]]]:
         """Сформировать доступное меню с учётом текущей сессии."""
         actions = {
-            "5": ("Каталог", self._books.catalog),
-            "6": ("Поиск и фильтры", self._books.search),
-            "7": ("Карточка книги", self._books.card),
+            "5": ("Каталог", self._book_cli.catalog),
+            "6": ("Поиск и фильтры", self._book_cli.search),
+            "7": ("Карточка книги", self._book_cli.card),
         }
-        if self._auth.current_user is None:
+        if self._user_service.current_user is None:
             actions.update({"1": ("Регистрация", self._register), "2": ("Вход", self._login)})
         else:
             actions.update(
                 {
                     "3": ("Моя учётная запись", self._show_account),
                     "4": ("Выйти из учётной записи", self._logout),
-                    "8": ("Мои книги", self._books.mine),
-                    "9": ("Добавить книгу", self._books.add),
-                    "10": ("Изменить книгу", self._books.edit),
-                    "11": ("Удалить книгу", self._books.delete),
-                    "12": ("Предложить обмен", self._exchanges.send),
-                    "13": ("Мои заявки", self._exchanges.list_requests),
-                    "14": ("Открыть заявку", self._exchanges.details),
-                    "15": ("Принять заявку", self._exchanges.accept),
-                    "16": ("Отклонить заявку", self._exchanges.reject),
-                    "17": ("Отменить заявку", self._exchanges.cancel),
-                    "18": ("Подтвердить передачу", self._exchanges.confirm),
+                    "8": ("Мои книги", self._book_cli.mine),
+                    "9": ("Добавить книгу", self._book_cli.add),
+                    "10": ("Изменить книгу", self._book_cli.edit),
+                    "11": ("Удалить книгу", self._book_cli.delete),
+                    "12": ("Предложить обмен", self._exchange_cli.send),
+                    "13": ("Мои заявки", self._exchange_cli.list_requests),
+                    "14": ("Открыть заявку", self._exchange_cli.details),
+                    "15": ("Принять заявку", self._exchange_cli.accept),
+                    "16": ("Отклонить заявку", self._exchange_cli.reject),
+                    "17": ("Отменить заявку", self._exchange_cli.cancel),
+                    "18": ("Подтвердить передачу", self._exchange_cli.confirm),
                 }
             )
         return actions
 
     def _logout(self) -> None:
         """Завершить сессию, сохранив данные до закрытия программы."""
-        self._auth.logout()
+        self._user_service.logout()
         print("Вы вышли из учётной записи.")
 
     def _register(self) -> None:
@@ -100,17 +102,17 @@ class ConsoleApp:
         name = input("Имя: ")
         city = input("Город: ")
         contact = input("Контакт: ")
-        user = self._auth.register(login, password, name, city, contact)
+        user = self._user_service.register(login, password, name, city, contact)
         print(f"Учётная запись {user.login} создана. Теперь выполните вход.")
 
     def _login(self) -> None:
         """Запросить логин и пароль и начать сессию."""
         login = input("Логин: ")
         password = getpass("Пароль (ввод скрыт): ")
-        user = self._auth.login(login, password)
+        user = self._user_service.login(login, password)
         print(f"Вход выполнен: {user.name}.")
 
     def _show_account(self) -> None:
         """Показать собственную запись как проверку доступа в рамках Ф2."""
-        user = self._auth.require_user()
+        user = self._user_service.require_user()
         print(f"Логин: {user.login}\nИмя: {user.name}\nГород: {user.city}")

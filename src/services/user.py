@@ -8,10 +8,10 @@ from src.security import PasswordHasher
 class UserService:
     """Реализовать регистрацию и управление одной консольной сессией."""
 
-    def __init__(self, repository: UserRepository, hasher: PasswordHasher) -> None:
+    def __init__(self, user_repository: UserRepository, password_hasher: PasswordHasher) -> None:
         """Получить хранилище и средство хеширования извне."""
-        self._repository = repository
-        self._hasher = hasher
+        self._user_repository = user_repository
+        self._password_hasher = password_hasher
         self._current_user: User | None = None
 
     @property
@@ -30,18 +30,20 @@ class UserService:
         for label, value, limit in fields:
             if not 1 <= len(value.strip()) <= limit:
                 raise ValueError(f"{label}: от 1 до {limit} символов, не только пробелы.")
-        if self._repository.find_by_login(login) is not None:
+        if self._user_repository.find_by_login(login) is not None:
             raise ValueError("Этот логин уже занят.")
-        password_hash, salt = self._hasher.create(password)
+        password_hash, salt = self._password_hasher.create(password)
         user = User(login, name.strip(), city.strip(), contact.strip(), password_hash, salt)
-        self._repository.add(user)
+        self._user_repository.add(user)
         return user
 
     def login(self, login: str, password: str) -> User:
         """Начать сессию при верных данных; ошибочный вход оставляет гостя."""
         self._current_user = None
-        user = self._repository.find_by_login(login.strip())
-        if user is None or not self._hasher.verify(password, user.password_hash, user.salt):
+        user = self._user_repository.find_by_login(login.strip())
+        if user is None or not self._password_hasher.verify(
+            password, user.password_hash, user.salt
+        ):
             raise ValueError("Неверный логин или пароль.")
         self._current_user = user
         return user
