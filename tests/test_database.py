@@ -9,11 +9,11 @@ from sqlalchemy import func, inspect, select
 
 from src.book_models import GENRES, Book, BookStatus
 from src.database.models import BookRecord, ExchangeConfirmation, ExchangeRecord, UserRecord
+from src.database.repositories.book import SQLAlchemyBookRepository
+from src.database.repositories.exchange import SQLAlchemyExchangeRepository
+from src.database.repositories.user import SQLAlchemyUserRepository
 from src.database.session import Database
 from src.exchange_models import ExchangeStatus
-from src.repositories.sqlalchemy.book import SQLAlchemyBookRepository
-from src.repositories.sqlalchemy.exchange import SQLAlchemyExchangeRepository
-from src.repositories.sqlalchemy.user import SQLAlchemyUserRepository
 from src.security import PasswordHasher
 from src.services.book import BookService
 from src.services.exchange import ExchangeService
@@ -57,6 +57,35 @@ class DatabaseTests(unittest.TestCase):
                 self.user_service.login(login, "testpass123")
                 self.book_service.add("Книга " + login, "Автор", GENRES[0], "Новое")
             return self.exchange_service.send(1, 2).id
+
+    def test_new_user_is_saved_without_outer_commit(self) -> None:
+        """Новый пользователь сохраняется самим методом добавления."""
+        self.user_service.register("Anna", "testpass123", "Анна", "Волгоград", "contact")
+        self.database.close()
+        other = Database(self.url)
+        try:
+            with other.transaction():
+                user = SQLAlchemyUserRepository(other.session).find_by_login("anna")
+                self.assertIsNotNone(user)
+                self.assertEqual(user.name, "Анна")
+        finally:
+            other.close()
+
+    def test_new_book_is_saved_without_outer_commit(self) -> None:
+        """Новая книга с выданным БД ID доступна после закрытия сессии."""
+        self.user_service.register("Anna", "testpass123", "Анна", "Волгоград", "contact")
+        self.user_service.login("anna", "testpass123")
+        book = self.book_service.add("Книга", "Автор", GENRES[0], "Новое")
+        self.database.close()
+        other = Database(self.url)
+        try:
+            with other.transaction():
+                saved = SQLAlchemyBookRepository(other.session).get(book.id)
+                self.assertGreater(saved.id, 0)
+                self.assertEqual(saved.title, "Книга")
+                self.assertEqual(saved.owner_login, "Anna")
+        finally:
+            other.close()
 
     def test_persistence_and_casefold(self) -> None:
         """Новая сессия читает прежние записи с исходным регистром логина."""

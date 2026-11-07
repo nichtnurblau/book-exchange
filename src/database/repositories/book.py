@@ -11,14 +11,15 @@ class SQLAlchemyBookRepository(BookRepository):
     """Хранить книги в БД, возвращая предметные объекты через маппер."""
 
     def __init__(self, session: Session) -> None:
-        """Получить общую сессию без права самостоятельно завершать транзакцию."""
+        """Получить сессию базы данных."""
         self._session = session
 
     def add(self, book: Book) -> Book:
         """Сохранить новую книгу и получить ID от базы данных."""
         record = BookMapper.to_record(book)
         self._session.add(record)
-        self._session.flush()
+        self._session.commit()
+        self._session.refresh(record)
         return BookMapper.to_domain(record)
 
     def get(self, book_id: int) -> Book:

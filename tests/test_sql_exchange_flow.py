@@ -1,10 +1,10 @@
 import tempfile
 from pathlib import Path
 
+from src.database.repositories.book import SQLAlchemyBookRepository
+from src.database.repositories.exchange import SQLAlchemyExchangeRepository
+from src.database.repositories.user import SQLAlchemyUserRepository
 from src.database.session import Database
-from src.repositories.sqlalchemy.book import SQLAlchemyBookRepository
-from src.repositories.sqlalchemy.exchange import SQLAlchemyExchangeRepository
-from src.repositories.sqlalchemy.user import SQLAlchemyUserRepository
 from src.services.book import BookService
 from src.services.catalog import CatalogService
 from src.services.exchange import ExchangeService
