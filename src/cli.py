@@ -4,6 +4,7 @@ from getpass import getpass
 
 from src.book_cli import BookConsole
 from src.exchange_cli import ExchangeConsole
+from src.menu import MenuCommand
 from src.services.user import UserService
 
 
@@ -38,31 +39,18 @@ class ConsoleApp:
                 user = self._user_service.current_user
                 print(f"\nТекущий пользователь: {user.name if user else 'Гость'}")
                 actions = self._actions()
-                for key in sorted(actions, key=int):
-                    print(f"{key} — {actions[key][0]}")
-                print("0 — Закрыть программу")
-                command = input("Выберите действие: ").strip()
-                if command == "0":
-                    break
+                for command in MenuCommand:
+                    if command in actions:
+                        print(f"{command.code} — {command.title}")
+                print(f"{MenuCommand.EXIT.code} — {MenuCommand.EXIT.title}")
                 try:
+                    command = MenuCommand.from_code(input("Выберите действие: ").strip())
+                    if command is MenuCommand.EXIT:
+                        break
                     if command in actions:
                         with self._transaction():
-                            actions[command][1]()
-                    elif user is None and command in {
-                        "3",
-                        "4",
-                        "8",
-                        "9",
-                        "10",
-                        "11",
-                        "12",
-                        "13",
-                        "14",
-                        "15",
-                        "16",
-                        "17",
-                        "18",
-                    }:
+                            actions[command]()
+                    elif user is None:
                         self._user_service.require_user()
                     else:
                         print("Выберите доступный пункт меню.")
@@ -78,31 +66,31 @@ class ConsoleApp:
             else "Программа закрыта. Данные удалены из памяти."
         )
 
-    def _actions(self) -> dict[str, tuple[str, Callable[[], None]]]:
+    def _actions(self) -> dict[MenuCommand, Callable[[], None]]:
         """Сформировать доступное меню с учётом текущей сессии."""
         actions = {
-            "5": ("Каталог", self._book_cli.catalog),
-            "6": ("Поиск и фильтры", self._book_cli.search),
-            "7": ("Карточка книги", self._book_cli.card),
+            MenuCommand.CATALOG: self._book_cli.catalog,
+            MenuCommand.SEARCH: self._book_cli.search,
+            MenuCommand.BOOK_CARD: self._book_cli.card,
         }
         if self._user_service.current_user is None:
-            actions.update({"1": ("Регистрация", self._register), "2": ("Вход", self._login)})
+            actions.update({MenuCommand.REGISTER: self._register, MenuCommand.LOGIN: self._login})
         else:
             actions.update(
                 {
-                    "3": ("Моя учётная запись", self._show_account),
-                    "4": ("Выйти из учётной записи", self._logout),
-                    "8": ("Мои книги", self._book_cli.mine),
-                    "9": ("Добавить книгу", self._book_cli.add),
-                    "10": ("Изменить книгу", self._book_cli.edit),
-                    "11": ("Удалить книгу", self._book_cli.delete),
-                    "12": ("Предложить обмен", self._exchange_cli.send),
-                    "13": ("Мои заявки", self._exchange_cli.list_requests),
-                    "14": ("Открыть заявку", self._exchange_cli.details),
-                    "15": ("Принять заявку", self._exchange_cli.accept),
-                    "16": ("Отклонить заявку", self._exchange_cli.reject),
-                    "17": ("Отменить заявку", self._exchange_cli.cancel),
-                    "18": ("Подтвердить передачу", self._exchange_cli.confirm),
+                    MenuCommand.ACCOUNT: self._show_account,
+                    MenuCommand.LOGOUT: self._logout,
+                    MenuCommand.MY_BOOKS: self._book_cli.mine,
+                    MenuCommand.ADD_BOOK: self._book_cli.add,
+                    MenuCommand.EDIT_BOOK: self._book_cli.edit,
+                    MenuCommand.DELETE_BOOK: self._book_cli.delete,
+                    MenuCommand.SEND_EXCHANGE: self._exchange_cli.send,
+                    MenuCommand.MY_EXCHANGES: self._exchange_cli.list_requests,
+                    MenuCommand.EXCHANGE_DETAILS: self._exchange_cli.details,
+                    MenuCommand.ACCEPT_EXCHANGE: self._exchange_cli.accept,
+                    MenuCommand.REJECT_EXCHANGE: self._exchange_cli.reject,
+                    MenuCommand.CANCEL_EXCHANGE: self._exchange_cli.cancel,
+                    MenuCommand.CONFIRM_EXCHANGE: self._exchange_cli.confirm,
                 }
             )
         return actions
@@ -114,11 +102,24 @@ class ConsoleApp:
 
     def _register(self) -> None:
         """Запросить поля и передать их сервису регистрации."""
-        login = input("Логин: ")
-        password = getpass("Пароль (ввод скрыт): ")
-        name = input("Имя: ")
-        city = input("Город: ")
-        contact = input("Контакт: ")
+        login = self._read_registration_field(
+            "Логин: ", self._user_service.validate_login, "Логин принят."
+        )
+        password = self._read_registration_field(
+            "Пароль (ввод скрыт): ",
+            self._user_service.validate_password,
+            "Пароль принят.",
+            hidden=True,
+        )
+        name = self._read_registration_field(
+            "Имя: ", self._user_service.validate_name, "Имя принято."
+        )
+        city = self._read_registration_field(
+            "Город: ", self._user_service.validate_city, "Город принят."
+        )
+        contact = self._read_registration_field(
+            "Контакт: ", self._user_service.validate_contact, "Контакт принят."
+        )
         user = self._user_service.register(login, password, name, city, contact)
         print(f"Учётная запись {user.login} создана. Теперь выполните вход.")
 
@@ -133,3 +134,17 @@ class ConsoleApp:
         """Показать собственную запись как проверку доступа в рамках Ф2."""
         user = self._user_service.require_user()
         print(f"Логин: {user.login}\nИмя: {user.name}\nГород: {user.city}")
+
+    def _read_registration_field(
+        self, prompt: str, validate: Callable[[str], str], success: str, hidden: bool = False
+    ) -> str:
+        """Повторять ввод одного поля до успешной проверки."""
+        while True:
+            value = getpass(prompt) if hidden else input(prompt)
+            try:
+                value = validate(value)
+            except ValueError as error:
+                print(f"Ошибка: {error}")
+                continue
+            print(success)
+            return value

@@ -7,7 +7,7 @@ from src.repositories.user import UserRepository
 
 
 class SQLAlchemyUserRepository(UserRepository):
-    """Хранить пользователей в общей сессии без самостоятельного commit."""
+    """SQL-хранилище пользователей."""
 
     def __init__(self, session: Session) -> None:
         """Получить сессию от владельца транзакции."""
@@ -19,8 +19,8 @@ class SQLAlchemyUserRepository(UserRepository):
         return UserMapper.to_domain(record) if record is not None else None
 
     def add(self, user: User) -> None:
-        """Добавить запись и проверить ограничения через flush."""
+        """Добавить пользователя и сохранить запись в БД."""
         if self.find_by_login(user.login) is not None:
             raise ValueError("Этот логин уже занят.")
         self._session.add(UserMapper.to_record(user))
-        self._session.flush()
+        self._session.commit()

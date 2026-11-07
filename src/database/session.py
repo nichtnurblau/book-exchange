@@ -21,16 +21,21 @@ class Database:
 
     @contextmanager
     def transaction(self) -> Iterator[None]:
-        """Сохранить команду целиком или откатить все её изменения."""
+        """Завершить транзакцию команды или откатить несохранённые изменения."""
         try:
-            with self.session.begin():
-                yield
+            yield
+            self.session.commit()
         except IntegrityError:
+            self.session.rollback()
             raise ValueError("Операция нарушает ограничения БД. Изменения не сохранены.") from None
         except DBAPIError:
+            self.session.rollback()
             raise ValueError(
                 "Не удалось выполнить операцию с БД. Изменения отменены; повторите команду."
             ) from None
+        except BaseException:
+            self.session.rollback()
+            raise
 
     def check_schema(self) -> None:
         """Проверить наличие актуальной схемы перед запуском меню."""
