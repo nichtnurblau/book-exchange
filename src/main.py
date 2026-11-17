@@ -15,8 +15,9 @@ from src.services.user import UserService
 
 def main() -> None:
     """Подключить SQL-репозитории к сервисам и запустить консоль."""
-    database = Database(get_database_url())
+    database: Database | None = None
     try:
+        database = Database(get_database_url())
         database.check_schema()
         user_repository = SQLAlchemyUserRepository(database.session)
         book_repository = SQLAlchemyBookRepository(database.session)
@@ -35,7 +36,8 @@ def main() -> None:
     except ValueError as error:
         print(f"Ошибка запуска: {error}")
     finally:
-        database.close()
+        if database is not None:
+            database.close()
 
 
 if __name__ == "__main__":
