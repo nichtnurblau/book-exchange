@@ -1,16 +1,18 @@
 services:
   db:
     image: postgres:16-alpine
+    restart: unless-stopped
     environment:
-      POSTGRES_DB: ${POSTGRES_DB:-bookexchange}
-      POSTGRES_USER: ${POSTGRES_USER:-bookexchange}
-      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-bookexchange}
+      POSTGRES_DB: ${POSTGRES_DB:?Скопируйте .env.example в .env}
+      POSTGRES_USER: ${POSTGRES_USER:?Скопируйте .env.example в .env}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?Скопируйте .env.example в .env}
     ports:
       - "127.0.0.1:${POSTGRES_PORT:-5432}:5432"
     volumes:
       - postgres_data:/var/lib/postgresql/data
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U $$POSTGRES_USER -d $$POSTGRES_DB"]
+      start_period: 5s
       interval: 3s
       timeout: 3s
       retries: 20

@@ -48,9 +48,13 @@ class Database:
                 heads = MigrationContext.configure(connection).get_current_heads()
             expected = ScriptDirectory.from_config(Config("alembic.ini")).get_heads()
             if set(heads) != set(expected):
-                raise ValueError("Схема БД не обновлена. Выполните: uv run alembic upgrade head")
+                raise ValueError(
+                    "Схема БД не обновлена. Выполните: uv run --env-file .env alembic upgrade head"
+                )
         except SQLAlchemyError:
-            raise ValueError("БД недоступна. Проверьте DATABASE_URL и запуск PostgreSQL.") from None
+            raise ValueError(
+                "БД недоступна. Проверьте .env и запустите PostgreSQL: docker compose up -d --wait"
+            ) from None
 
     def close(self) -> None:
         """Закрыть сессию и пул подключений."""
