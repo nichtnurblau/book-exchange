@@ -9,6 +9,29 @@
 затем `uv run python -m src.main`.
 Импорты собственных модулей начинаются с `src`.
 
+
+### Запуск с PostgreSQL
+
+Для запуска приложения с PostgreSQL используется Docker Compose.
+Контейнер базы данных описан в `docker-compose.yaml`, а параметры
+подключения задаются в `.env`.
+
+Порядок запуска из корня проекта:
+
+```bash
+uv sync
+cp .env.example .env
+docker compose up -d --wait
+uv run --env-file .env alembic upgrade head
+uv run --env-file .env python -m src.main
+```
+
+После перезапуска контейнера данные пользователей, книг и обменов
+сохраняются в именованном томе `postgres_data`.
+
+Подробная инструкция по подключению и проверке данных находится
+в [документации базы данных](database.md).
+
 ## Структура
 
 | Путь | Содержимое |
