@@ -1,13 +1,16 @@
 import os
+from pathlib import Path
 from secrets import token_urlsafe
 
 from fastapi import FastAPI, Request
 from fastapi.exceptions import RequestValidationError
 from fastapi.responses import JSONResponse
+from fastapi.staticfiles import StaticFiles
 from starlette.middleware.sessions import SessionMiddleware
 
 from src.database.settings import get_database_url
 from src.web.api import router
+from src.web.pages import router as pages_router
 
 
 def create_app(database_url: str | None = None, secret_key: str | None = None) -> FastAPI:
@@ -21,6 +24,12 @@ def create_app(database_url: str | None = None, secret_key: str | None = None) -
         max_age=86400,
     )
     app.include_router(router)
+    app.include_router(pages_router)
+    app.mount(
+        "/static",
+        StaticFiles(directory=Path(__file__).resolve().parents[1] / "static"),
+        name="static",
+    )
 
     @app.exception_handler(ValueError)
     async def invalid_value(request: Request, error: ValueError) -> JSONResponse:
