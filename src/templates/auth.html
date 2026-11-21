@@ -1,0 +1,11 @@
+{% extends "base.html" %}{% block content %}
+<h1>{{ 'Регистрация' if register else 'Вход' }}</h1>
+{% if error %}<p class="error" role="alert">{{ error }}</p>{% endif %}
+<form class="panel narrow" method="post" action="{{ '/register' if register else '/login' }}">
+<input type="hidden" name="csrf" value="{{ csrf }}">
+<label>Логин<input name="login" required minlength="3" maxlength="30" autocomplete="username"></label>
+<label>Пароль<input name="password" type="password" required minlength="8" maxlength="128" autocomplete="{{ 'new-password' if register else 'current-password' }}"></label>
+{% if register %}<label>Имя<input name="name" required maxlength="50"></label>
+<label>Город<input name="city" required maxlength="80"></label><label>Контакт для связи<input name="contact" required maxlength="100"></label>{% endif %}
+<button>{{ 'Зарегистрироваться' if register else 'Войти' }}</button></form>
+{% endblock %}
