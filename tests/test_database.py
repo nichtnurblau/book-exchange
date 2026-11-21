@@ -7,13 +7,13 @@ from unittest.mock import patch
 from alembic import command
 from sqlalchemy import func, inspect, select
 
-from src.book_models import GENRES, Book, BookStatus
 from src.database.models import BookRecord, ExchangeConfirmation, ExchangeRecord, UserRecord
-from src.database.repositories.book import SQLAlchemyBookRepository
-from src.database.repositories.exchange import SQLAlchemyExchangeRepository
-from src.database.repositories.user import SQLAlchemyUserRepository
 from src.database.session import Database
-from src.exchange_models import ExchangeStatus
+from src.models.book import GENRES, Book, BookStatus
+from src.models.exchange import ExchangeStatus
+from src.repositories.book import SQLAlchemyBookRepository
+from src.repositories.exchange import SQLAlchemyExchangeRepository
+from src.repositories.user import SQLAlchemyUserRepository
 from src.security import PasswordHasher
 from src.services.book import BookService
 from src.services.exchange import ExchangeService

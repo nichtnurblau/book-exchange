@@ -1,5 +1,5 @@
-from src.book_models import CONDITIONS, GENRES, Book
-from src.console_input import ConsoleInput
+from src.cli.input import ConsoleInput
+from src.models.book import CONDITIONS, GENRES, Book
 from src.services.book import BookService
 from src.services.catalog import CatalogService
 

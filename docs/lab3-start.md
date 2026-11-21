@@ -35,21 +35,21 @@ uv run --env-file .env python -m src.main
 
 | Путь | Содержимое |
 |---|---|
-| `src/models.py`, `src/book_models.py`, `src/exchange_models.py` | Пользователи, книги, заявки и статусы |
+| `src/models/user.py`, `src/models/book.py`, `src/models/exchange.py` | Пользователи, книги, заявки и статусы |
 | `src/catalog.py` | `Catalog` и публичная карточка `BookCard` |
 | `src/repositories/user.py` | `UserRepository` и `InMemoryUserRepository` |
 | `src/repositories/book.py` | `BookRepository` и `InMemoryBookRepository` |
 | `src/repositories/exchange.py` | `ExchangeRepository` и `InMemoryExchangeRepository` |
 | `src/database/` | ORM-модели, mapper-классы, подключение и граница транзакции |
-| `src/database/repositories/` | SQL-реализации трёх репозиториев |
+| `src/repositories/` | SQL-реализации трёх репозиториев |
 | `migrations/` | История схемы Alembic |
 | `src/services/user.py` | `UserService`: регистрация и текущая сессия |
 | `src/services/book.py` | `BookService`: управление объявлениями |
 | `src/services/exchange.py` | `ExchangeService`: обмены и права участников |
 | `src/services/catalog.py` | `CatalogService`: построение актуального каталога |
-| `src/menu.py` | `MenuCommand`: номера и названия пунктов меню |
-| `src/console_input.py` | `ConsoleInput`: ввод ID и выбор пункта |
-| `src/book_cli.py`, `src/exchange_cli.py`, `src/cli.py` | Консольные разделы и общее меню |
+| `src/cli/menu.py` | `MenuCommand`: номера и названия пунктов меню |
+| `src/cli/input.py` | `ConsoleInput`: ввод ID и выбор пункта |
+| `src/cli/book.py`, `src/cli/exchange.py`, `src/cli/app.py` | Консольные разделы и общее меню |
 
 В сервисах сначала расположены конструктор и публичные методы, затем методы
 с одним нижним подчёркиванием. Такие методы используются внутри класса.

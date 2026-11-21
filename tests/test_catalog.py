@@ -1,9 +1,9 @@
 import unittest
 from dataclasses import replace
 
-from src.book_models import GENRES, Book, BookStatus
 from src.catalog import BookCard, Catalog
 from src.models import User
+from src.models.book import GENRES, Book, BookStatus
 from src.repositories.book import InMemoryBookRepository
 from src.repositories.user import InMemoryUserRepository
 from src.services.catalog import CatalogService

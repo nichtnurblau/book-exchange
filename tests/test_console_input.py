@@ -3,7 +3,7 @@ import unittest
 from contextlib import redirect_stdout
 from unittest.mock import patch
 
-from src.console_input import ConsoleInput
+from src.cli.input import ConsoleInput
 
 
 class ConsoleInputTests(unittest.TestCase):

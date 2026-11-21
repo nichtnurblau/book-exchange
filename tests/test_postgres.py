@@ -8,7 +8,7 @@ from uuid import uuid4
 from sqlalchemy import create_engine
 from sqlalchemy.engine import Engine, make_url
 
-from src.main import main
+from src.cli.runner import run_cli as main
 from tests import test_database
 
 
@@ -46,9 +46,9 @@ class PostgreSQLDatabaseTests(test_database.DatabaseTests):
         ]
         output = io.StringIO()
         with (
-            patch("src.main.get_database_url", return_value=self.url),
+            patch("src.cli.runner.get_database_url", return_value=self.url),
             patch("builtins.input", side_effect=commands),
-            patch("src.cli.getpass", side_effect=["testpass123", "testpass123"]),
+            patch("src.cli.app.getpass", side_effect=["testpass123", "testpass123"]),
             redirect_stdout(output),
         ):
             main()

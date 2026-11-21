@@ -1,7 +1,7 @@
 import unittest
 from dataclasses import FrozenInstanceError, replace
 
-from src.book_models import GENRES, Book
+from src.models.book import GENRES, Book
 from src.repositories.book import InMemoryBookRepository
 
 

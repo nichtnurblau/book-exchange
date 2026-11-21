@@ -5,7 +5,7 @@ from contextlib import redirect_stdout
 from pathlib import Path
 from unittest.mock import patch
 
-from src.main import main
+from src.cli.runner import run_cli as main
 from tests.db_support import migrate
 
 
@@ -24,8 +24,8 @@ class CliExchangeTests(unittest.TestCase):
         output = io.StringIO()
         with (
             patch("builtins.input", side_effect=commands),
-            patch("src.main.get_database_url", return_value=self.url),
-            patch("src.cli.getpass", side_effect=passwords),
+            patch("src.cli.runner.get_database_url", return_value=self.url),
+            patch("src.cli.app.getpass", side_effect=passwords),
             redirect_stdout(output),
         ):
             main()

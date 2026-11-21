@@ -1,5 +1,5 @@
-from src.book_models import Book, BookStatus
 from src.catalog import BookCard, Catalog
+from src.models.book import Book, BookStatus
 from src.repositories.book import BookRepository
 from src.repositories.user import UserRepository
 

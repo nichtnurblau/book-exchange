@@ -1,9 +1,9 @@
 import unittest
 from dataclasses import replace
 
-from src.book_models import GENRES, BookStatus
-from src.exchange_models import ExchangeStatus
 from src.models import User
+from src.models.book import GENRES, BookStatus
+from src.models.exchange import ExchangeStatus
 from src.repositories.book import InMemoryBookRepository
 from src.repositories.exchange import InMemoryExchangeRepository
 from src.repositories.user import InMemoryUserRepository

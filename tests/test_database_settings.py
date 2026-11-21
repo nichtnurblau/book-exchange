@@ -6,8 +6,8 @@ from unittest.mock import patch
 
 from sqlalchemy.engine import make_url
 
+from src.cli.runner import run_cli as main
 from src.database.settings import get_database_url
-from src.main import main
 
 
 class DatabaseSettingsTests(unittest.TestCase):
