@@ -26,12 +26,17 @@ jobs:
         run: |
           cp .env.example .env
           docker compose config --quiet
-          docker compose up -d --wait
+          docker compose up -d --wait db
       - run: uv run --env-file .env alembic upgrade head
       - run: uv run --env-file .env alembic check
       - run: uv run --env-file .env python -m unittest discover -s tests -v
-      - name: Check console startup
-        run: printf '0\n' | uv run --env-file .env python -m src.main
+      - name: Build and start web application
+        run: docker compose up -d --build --wait
+      - name: Check web application
+        run: uv run python -m tests.smoke_web
+      - name: Show application logs on failure
+        if: failure()
+        run: docker compose logs app db
       - name: Stop PostgreSQL
         if: always()
         run: docker compose down
