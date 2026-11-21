@@ -1,5 +1,5 @@
-from src.console_input import ConsoleInput
-from src.exchange_models import ExchangeStatus
+from src.cli.input import ConsoleInput
+from src.models.exchange import ExchangeStatus
 from src.services.exchange import ExchangeService, ExchangeView
 
 

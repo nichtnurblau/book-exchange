@@ -3,9 +3,9 @@ import unittest
 from contextlib import redirect_stdout
 from unittest.mock import patch
 
-from src.book_cli import BookConsole
 from src.cli import ConsoleApp
-from src.exchange_cli import ExchangeConsole
+from src.cli.book import BookConsole
+from src.cli.exchange import ExchangeConsole
 from src.repositories.book import InMemoryBookRepository
 from src.repositories.exchange import InMemoryExchangeRepository
 from src.repositories.user import InMemoryUserRepository
@@ -60,7 +60,7 @@ class CliTests(unittest.TestCase):
         output = io.StringIO()
         with (
             patch("builtins.input", side_effect=commands),
-            patch("src.cli.getpass", side_effect=["testpass123", "wrong", "testpass123"]),
+            patch("src.cli.app.getpass", side_effect=["testpass123", "wrong", "testpass123"]),
             redirect_stdout(output),
         ):
             self.make_app(user_service, user_repository).run()
@@ -99,7 +99,7 @@ class CliTests(unittest.TestCase):
         passwords = iter(["short", "testpass123"])
         with (
             patch("builtins.input", side_effect=read),
-            patch("src.cli.getpass", side_effect=read_password),
+            patch("src.cli.app.getpass", side_effect=read_password),
             redirect_stdout(output),
         ):
             self.make_app(service, repository).run()
@@ -133,7 +133,7 @@ class CliTests(unittest.TestCase):
         output = io.StringIO()
         with (
             patch("builtins.input", side_effect=commands) as read,
-            patch("src.cli.getpass", side_effect=read_password),
+            patch("src.cli.app.getpass", side_effect=read_password),
             redirect_stdout(output),
         ):
             self.make_app(service, repository).run()
@@ -165,7 +165,7 @@ class CliTests(unittest.TestCase):
         service = UserService(repository, PasswordHasher())
         with (
             patch("builtins.input", side_effect=["1", "Reader", EOFError]),
-            patch("src.cli.getpass", return_value="testpass123"),
+            patch("src.cli.app.getpass", return_value="testpass123"),
             redirect_stdout(io.StringIO()),
         ):
             self.make_app(service, repository).run()

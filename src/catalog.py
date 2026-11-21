@@ -1,6 +1,6 @@
 from dataclasses import dataclass
 
-from src.book_models import Book, BookStatus
+from src.models.book import Book, BookStatus
 
 
 @dataclass(frozen=True)

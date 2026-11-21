@@ -83,6 +83,13 @@ class UserService:
             raise PermissionError("Сначала войдите в учётную запись.")
         return self._current_user
 
+    def restore_session(self, login: str) -> None:
+        """Восстановить пользователя по логину из проверенной сервером сессии."""
+        user = self._user_repository.find_by_login(login)
+        if user is None:
+            raise PermissionError("Войдите в учётную запись заново.")
+        self._current_user = user
+
     @staticmethod
     def _validate_text(label: str, value: str, limit: int) -> str:
         """Проверить непустое поле и убрать пробелы по краям."""

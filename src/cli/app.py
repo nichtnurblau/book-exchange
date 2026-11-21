@@ -2,9 +2,9 @@ from collections.abc import Callable
 from contextlib import AbstractContextManager, nullcontext
 from getpass import getpass
 
-from src.book_cli import BookConsole
-from src.exchange_cli import ExchangeConsole
-from src.menu import MenuCommand
+from src.cli.book import BookConsole
+from src.cli.exchange import ExchangeConsole
+from src.cli.menu import MenuCommand
 from src.services.user import UserService
 
 

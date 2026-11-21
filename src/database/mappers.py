@@ -1,9 +1,9 @@
 from datetime import timezone
 
-from src.book_models import Book, BookStatus
 from src.database.models import BookRecord, ExchangeRecord, UserRecord
-from src.exchange_models import Exchange, ExchangeStatus
 from src.models import User
+from src.models.book import Book, BookStatus
+from src.models.exchange import Exchange, ExchangeStatus
 
 
 class UserMapper:

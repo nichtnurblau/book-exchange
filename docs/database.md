@@ -88,7 +88,7 @@ uv run --env-file .env alembic check
 
 - `src/database/models.py`: `Mapped`, `mapped_column`, PK, FK, проверки и связи.
 - `src/database/mappers.py`: преобразования между ORM-записями и прежними dataclass.
-- `src/database/repositories/`: реализация прежних абстрактных репозиториев.
+- `src/repositories/`: реализация прежних абстрактных репозиториев.
 - `src/database/session.py`: общая `Session` и граница транзакции.
 - `src/main.py`: сборка сервисов с SQL-репозиториями.
 

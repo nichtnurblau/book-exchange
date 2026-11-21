@@ -1,8 +1,8 @@
 from dataclasses import dataclass, replace
 from datetime import datetime, timezone
 
-from src.book_models import Book, BookStatus
-from src.exchange_models import Exchange, ExchangeStatus
+from src.models.book import Book, BookStatus
+from src.models.exchange import Exchange, ExchangeStatus
 from src.repositories.book import BookRepository
 from src.repositories.exchange import ExchangeRepository
 from src.repositories.user import UserRepository

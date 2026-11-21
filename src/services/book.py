@@ -1,7 +1,7 @@
 from dataclasses import replace
 
-from src.book_models import CONDITIONS, GENRES, Book, BookStatus
-from src.exchange_models import ExchangeStatus
+from src.models.book import CONDITIONS, GENRES, Book, BookStatus
+from src.models.exchange import ExchangeStatus
 from src.repositories.book import BookRepository
 from src.repositories.exchange import ExchangeRepository
 from src.services.user import UserService
