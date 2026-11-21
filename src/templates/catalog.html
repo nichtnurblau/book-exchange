@@ -1,0 +1,13 @@
+{% extends "base.html" %}{% block content %}
+<h1>Каталог книг</h1><form class="filters" method="get">
+<label>Название или автор<input name="query" value="{{ query }}"></label>
+<label>Жанр<select name="genre"><option value="">Все жанры</option>{% for item in genres %}<option {% if genre == item %}selected{% endif %}>{{ item }}</option>{% endfor %}</select></label>
+<label>Город<input name="city" value="{{ city }}"></label><button>Найти</button><a href="/">Сбросить</a></form>
+<div class="grid">{% for card in cards %}<article class="panel"><h2>{{ card.book.title }}</h2><p>{{ card.book.author }}</p>
+<p class="muted">{{ card.book.genre }} · {{ card.book.condition }}</p><p>{{ card.book.description }}</p>
+<p>{{ card.owner_name }}, {{ card.city }}</p>
+{% if user and card.book.owner_login != user.login %}
+<form method="post" action="/exchanges"><input type="hidden" name="csrf" value="{{ csrf }}"><input type="hidden" name="requested_id" value="{{ card.book.id }}">
+<label>Предложить свою книгу<select name="offered_id" required><option value="">Выберите книгу</option>{% for book in own_books if book.status.value == 'Доступна' %}<option value="{{ book.id }}">{{ book.title }}</option>{% endfor %}</select></label><button>Предложить обмен</button></form>
+{% elif not user %}<a href="/login">Войдите, чтобы предложить обмен</a>{% endif %}</article>
+{% else %}<p>Книги не найдены.</p>{% endfor %}</div>{% endblock %}

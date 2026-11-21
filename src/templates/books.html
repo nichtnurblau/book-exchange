@@ -1,0 +1,5 @@
+{% extends "base.html" %}{% block content %}<h1>Мои книги</h1><p><a class="button" href="/books/new">Добавить книгу</a></p>
+<div class="grid">{% for book in books %}<article class="panel"><h2>{{ book.title }}</h2><p>{{ book.author }}</p><p>{{ book.status.value }}</p>
+{% if book.status.value == 'Доступна' %}<a href="/books/{{ book.id }}/edit">Изменить</a>
+<form method="post" action="/books/{{ book.id }}/delete" onsubmit="return confirm('Удалить объявление?')"><input type="hidden" name="csrf" value="{{ csrf }}"><button class="secondary">Удалить</button></form>{% endif %}</article>
+{% else %}<p>У вас пока нет книг.</p>{% endfor %}</div>{% endblock %}
